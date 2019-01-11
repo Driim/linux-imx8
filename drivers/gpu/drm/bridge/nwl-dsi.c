@@ -758,16 +758,6 @@ static void nwl_dsi_finish_transmission(struct nwl_mipi_dsi *dsi, u32 status)
 	if (!xfer)
 		return;
 
-	if (status & TX_FIFO_OVFLW) {
-		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "tx fifo overflow");
-		return;
-	}
-
-	if (status & HS_TX_TIMEOUT) {
-		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "HS tx timeout");
-		return;
-	}
-
 	if (xfer->direction == DSI_PACKET_SEND && status & TX_PKT_DONE) {
 		xfer->status = xfer->tx_len;
 		end_packet = true;
@@ -908,6 +898,12 @@ static irqreturn_t nwl_dsi_irq_handler(int irq, void *data)
 	    irq_status & RX_PKT_HDR_RCVD ||
 	    irq_status & RX_PKT_PAYLOAD_DATA_RCVD)
 		nwl_dsi_finish_transmission(dsi, irq_status);
+
+	if (irq_status & TX_FIFO_OVFLW)
+		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "tx fifo overflow");
+
+	if (irq_status & HS_TX_TIMEOUT)
+		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "HS tx timeout");
 
 	return IRQ_HANDLED;
 }
