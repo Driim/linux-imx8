@@ -16,8 +16,4 @@
 
 #include "librem5-evk.dtsi"
 
-&usb_dwc3_0 {
-	status = "okay";
-	extcon = <&typec_ptn5100>;
-	dr_mode = "host";
-};
+#include "librem5-evk-usbhost.dtsi"

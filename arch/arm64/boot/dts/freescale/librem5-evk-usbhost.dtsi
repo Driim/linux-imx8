@@ -12,8 +12,8 @@
  * GNU General Public License for more details.
  */
 
-/dts-v1/;
-
-#include "librem5-evk.dtsi"
-
-#include "librem5-evk-lcd.dtsi"
+&usb_dwc3_0 {
+	status = "okay";
+	extcon = <&typec_ptn5100>;
+	dr_mode = "host";
+};
