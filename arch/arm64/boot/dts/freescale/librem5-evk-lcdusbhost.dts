@@ -17,3 +17,4 @@
 #include "librem5-evk.dtsi"
 
 #include "librem5-evk-lcd.dtsi"
+#include "librem5-evk-usbhost.dtsi"
