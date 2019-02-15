@@ -19,8 +19,7 @@ build:aarch64:Image:
   variables:
     CROSS_BUILD: "ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   script:
-    - cp arch/arm64/configs/librem5-evk_defconfig .config
-    - make      ${CROSS_BUILD} olddefconfig
+    - make      ${CROSS_BUILD} librem5-evk_defconfig
     - make -j 4 ${CROSS_BUILD} Image dtbs modules
     - make -j 4 ${CROSS_BUILD} INSTALL_MOD_PATH=modules/ modules_install
   artifacts:
