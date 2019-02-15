@@ -1,7 +1,8 @@
 variables:
   DEPS: >
     build-essential gcc-aarch64-linux-gnu make device-tree-compiler
-    bison flex bc libssl-dev
+    bison flex bc libssl-dev kmod cpio
+  CROSS_BUILD: "ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
 
 before_script:
   - export DEBIAN_FRONTEND=noninteractive
@@ -12,7 +13,7 @@ before_script:
   tags:
     - librem5
 
-build:aarch64:
+build:aarch64:Image:
   <<: *tags
   stage: build
   variables:
@@ -27,4 +28,17 @@ build:aarch64:
       - arch/arm64/boot/Image
       - arch/arm64/boot/dts/freescale/librem5-evk.dtb
       - modules/
+    expire_in: 1 week
+
+build:aarch64:deb:
+  <<: *tags
+  stage: build
+  script:
+    - make      ${CROSS_BUILD} librem5-evk_defconfig
+    - make -j 4 ${CROSS_BUILD} bindeb-pkg
+    - rm ../linux-image-*-dbg*_arm64.deb
+    - mv ../*.deb .
+  artifacts:
+    paths:
+      - "*.deb"
     expire_in: 1 week
