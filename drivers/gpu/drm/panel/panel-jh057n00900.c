@@ -12,11 +12,14 @@
 #include <linux/gpio/consumer.h>
 #include <video/mipi_display.h>
 #include <video/display_timing.h>
+#include <linux/debugfs.h>
 
 #define DRV_NAME "jh057n00900"
 
 /* The Rockteck jh057n00900 uses a Sitronix ST7703 */
 
+#define ST7703_DCS_CMD_ALLPOFF  0x22    /* all pixels off */
+#define ST7703_DCS_CMD_ALLPON   0x23    /* all pixels on */
 /* Manufacturer Command Set */
 #define ST7703_CMD_SETDISP  0xB2    /* display resolution */
 #define ST7703_CMD_SETRGBIF 0xB3    /* porch adjustment */
@@ -43,6 +46,8 @@ struct jh057n {
 	struct backlight_device *backlight;
 	bool prepared;
 	bool enabled;
+
+	struct dentry *debugfs;
 };
 
 static const struct drm_display_mode default_mode = {
@@ -309,6 +314,47 @@ static const struct drm_panel_funcs jh057n_drm_funcs = {
 	.get_modes = jh057n_get_modes,
 };
 
+static int allpixelson_set(void *data, u64 val)
+{
+	struct jh057n *ctx = data;
+
+	DRM_DEV_DEBUG_DRIVER(ctx->dev, "Setting all pixels on");
+
+	dsi_generic_write_seq(ctx, ST7703_DCS_CMD_ALLPON);
+	/* reset the panel after val seconds */
+	msleep(val*1000);
+	jh057n_unprepare(&ctx->panel);
+	msleep(10);
+	jh057n_prepare(&ctx->panel);
+	jh057n_enable(&ctx->panel);
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(allpixelson_fops, NULL,
+			allpixelson_set, "%llu\n");
+
+static int jh057n_debugfs_init (struct jh057n *ctx)
+{
+	struct dentry *f;
+
+	ctx->debugfs = debugfs_create_dir(DRV_NAME, NULL);
+	if (!ctx->debugfs)
+		return -ENOMEM;
+
+	f = debugfs_create_file("allpixelson", S_IRUSR | S_IWUSR,
+				ctx->debugfs, ctx, &allpixelson_fops);
+	if (!f)
+		return -ENOMEM;
+
+	return 0;
+}
+
+static void jh057n_debugfs_remove(struct jh057n *ctx)
+{
+	debugfs_remove_recursive(ctx->debugfs);
+	ctx->debugfs = NULL;
+}
+
 static int jh057n_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
@@ -368,6 +414,7 @@ static int jh057n_probe(struct mipi_dsi_device *dsi)
 		 default_mode.vrefresh,
 		 mipi_dsi_pixel_format_to_bpp(dsi->format), dsi->lanes);
 
+	jh057n_debugfs_init(ctx);
 	return 0;
 }
 
@@ -380,6 +427,8 @@ static int jh057n_remove(struct mipi_dsi_device *dsi)
 
 	if (ctx->backlight)
 		put_device(&ctx->backlight->dev);
+
+	jh057n_debugfs_remove(ctx);
 
 	return 0;
 }
