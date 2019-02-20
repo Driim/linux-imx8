@@ -117,6 +117,19 @@ config DRM_PANEL_RAYDIUM_RM68200
 	  Say Y here if you want to enable support for Raydium RM68200
 	  720x1280 DSI video mode panel.
 
+config DRM_PANEL_ROCKTECH_JH057N00900
+	tristate "Rocktech JH057N00900 MIPI touchscreen panel"
+	depends on OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y here if you want to enable support for Rocktech JH057N00900
+	  MIPI DSI panel as e.g. used in the Librem 5 devkit. It has a
+	  resolution of 720x1440 pixels, a built in backlight and touch
+	  controller.
+	  Touch input support is provided by the goodix driver and needs to be
+	  selected separately.
+
 config DRM_PANEL_SAMSUNG_S6E3HA2
 	tristate "Samsung S6E3HA2 DSI video mode panel"
 	depends on OF
@@ -185,14 +198,5 @@ config DRM_PANEL_FRD55
 	help
 	  Say Y here if you want to enable support for Emcraft FRD55
 	  FHD MIPI DSI panel.
-
-config DRM_PANEL_ROCKCHIP_JH057N00900
-	tristate "Rockchip JH057N00900 MIPI Panel"
-	depends on OF
-	depends on DRM_MIPI_DSI
-	depends on BACKLIGHT_CLASS_DEVICE
-	help
-	  Say Y here if you want to enable support for Rockchip JH057N00900IPI
-	  MIPI DSI panel as e.g. used in the Librem-5 devkit.
 
 endmenu
