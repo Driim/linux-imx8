@@ -15,3 +15,5 @@
 /dts-v1/;
 
 #include "librem5-evk.dtsi"
+
+#include "librem5-evk-lcd.dtsi"
