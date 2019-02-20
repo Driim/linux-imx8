@@ -30,6 +30,7 @@
 #include <linux/of_platform.h>
 #include <linux/phy/phy.h>
 #include <linux/spinlock.h>
+#include <soc/imx8/soc.h>
 #include <video/mipi_display.h>
 #include <video/videomode.h>
 
@@ -758,16 +759,6 @@ static void nwl_dsi_finish_transmission(struct nwl_mipi_dsi *dsi, u32 status)
 	if (!xfer)
 		return;
 
-	if (status & TX_FIFO_OVFLW) {
-		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "tx fifo overflow");
-		return;
-	}
-
-	if (status & HS_TX_TIMEOUT) {
-		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "HS tx timeout");
-		return;
-	}
-
 	if (xfer->direction == DSI_PACKET_SEND && status & TX_PKT_DONE) {
 		xfer->status = xfer->tx_len;
 		end_packet = true;
@@ -780,6 +771,13 @@ static void nwl_dsi_finish_transmission(struct nwl_mipi_dsi *dsi, u32 status)
 		complete(&xfer->completed);
 }
 
+
+#define B0_SILICON_ID                        0x20
+static bool nwl_use_e11418_workaround(void)
+{
+  return (imx8_get_soc_revision() == B0_SILICON_ID) ? true : false;
+}
+
 static void nwl_dsi_begin_transmission(struct nwl_mipi_dsi *dsi)
 {
 	struct mipi_dsi_transfer *xfer = dsi->xfer;
@@ -789,6 +787,7 @@ static void nwl_dsi_begin_transmission(struct nwl_mipi_dsi *dsi)
 	u16 word_count;
 	u8 hs_mode;
 	u32 val;
+	u32 hs_workaround = 0;
 
 	/* Send the payload, if any */
 	length = pkt->payload_length;
@@ -796,6 +795,7 @@ static void nwl_dsi_begin_transmission(struct nwl_mipi_dsi *dsi)
 
 	while (length >= 4) {
 		val = get_unaligned_le32(payload);
+		hs_workaround |= !(val & 0xFFFF00);
 		nwl_dsi_write(dsi, TX_PAYLOAD, val);
 		payload += 4;
 		length -= 4;
@@ -808,6 +808,7 @@ static void nwl_dsi_begin_transmission(struct nwl_mipi_dsi *dsi)
 		/* Fall through */
 	case 2:
 		val |= payload[1] << 8;
+		hs_workaround |= !(val & 0xFFFF00);
 		/* Fall through */
 	case 1:
 		val |= payload[0];
@@ -824,7 +825,15 @@ static void nwl_dsi_begin_transmission(struct nwl_mipi_dsi *dsi)
 	 * header[2] = Word Count MSB (LP) or second param (SP)
 	 */
 	word_count = pkt->header[1] | (pkt->header[2] << 8);
-	hs_mode = (xfer->msg->flags & MIPI_DSI_MSG_USE_LPM)?0:1;
+
+	if ((hs_workaround && nwl_use_e11418_workaround())) {
+		DRM_DEV_DEBUG_DRIVER(dsi->dev,
+				     "Using hs mode workaround for cmd 0x%x",
+				     xfer->cmd);
+		hs_mode = 1;
+	} else {
+		hs_mode = (xfer->msg->flags & MIPI_DSI_MSG_USE_LPM)?0:1;
+	}
 	val = WC(word_count) |
 		TX_VC(xfer->msg->channel) |
 		TX_DT(xfer->msg->type) |
@@ -908,6 +917,12 @@ static irqreturn_t nwl_dsi_irq_handler(int irq, void *data)
 	    irq_status & RX_PKT_HDR_RCVD ||
 	    irq_status & RX_PKT_PAYLOAD_DATA_RCVD)
 		nwl_dsi_finish_transmission(dsi, irq_status);
+
+	if (irq_status & TX_FIFO_OVFLW)
+		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "tx fifo overflow");
+
+	if (irq_status & HS_TX_TIMEOUT)
+		DRM_DEV_ERROR_RATELIMITED(dsi->dev, "HS tx timeout");
 
 	return IRQ_HANDLED;
 }

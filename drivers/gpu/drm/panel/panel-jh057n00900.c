@@ -12,11 +12,14 @@
 #include <linux/gpio/consumer.h>
 #include <video/mipi_display.h>
 #include <video/display_timing.h>
+#include <linux/debugfs.h>
 
 #define DRV_NAME "jh057n00900"
 
 /* The Rockteck jh057n00900 uses a Sitronix ST7703 */
 
+#define ST7703_DCS_CMD_ALLPOFF  0x22    /* all pixels off */
+#define ST7703_DCS_CMD_ALLPON   0x23    /* all pixels on */
 /* Manufacturer Command Set */
 #define ST7703_CMD_SETDISP  0xB2    /* display resolution */
 #define ST7703_CMD_SETRGBIF 0xB3    /* porch adjustment */
@@ -43,6 +46,8 @@ struct jh057n {
 	struct backlight_device *backlight;
 	bool prepared;
 	bool enabled;
+
+	struct dentry *debugfs;
 };
 
 static const struct drm_display_mode default_mode = {
@@ -60,7 +65,6 @@ static const struct drm_display_mode default_mode = {
 	.width_mm    = 65,
 	.height_mm   = 130,
 };
-
 
 static inline struct jh057n *panel_to_jh057n(struct drm_panel *panel)
 {
@@ -88,47 +92,25 @@ static int jh057n_init_sequence(struct jh057n *ctx)
 	struct device *dev = ctx->dev;
 	int ret;
 
-	/* Enable user command */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETEXTC, /* 3 */
 			      0xF1, 0x12, 0x83);
-	/* 6 params in ST7703 docs */
-	dsi_generic_write_seq(ctx, ST7703_CMD_SETMIPI, /* 27 */
-			      0x33, 0x81, 0x05, 0xF9, 0x0E, 0x0E, 0x20, 0x00,
-			      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x44, 0x25,
-			      0x00, 0x91, 0x0A, 0x00, 0x00, 0x02, 0x4F, 0x11,
-			      0x00, 0x00, 0x37);
-	/* 6 params in ST7703 docs */
-	dsi_generic_write_seq(ctx, ST7703_CMD_SETPOWER_EXT, /* 4 */
-			      0x76, 0x22, 0x20, 0x03);
-	/* 4 params in ST7703 docs */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETRGBIF, /* 10 */
 			      0x10, 0x10, 0x05, 0x05, 0x03, 0xFF, 0x00, 0x00,
 			      0x00, 0x00);
-	/* 8 params in ST7703 docs */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETSCR, /* 9 */
 			      0x73, 0x73, 0x50, 0x50, 0x00, 0x00, 0x08, 0x70,
 			      0x00);
-	/* -1.6V & + 1.9V */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETVDC, 0x4E);
-	/* SS_PANEL, REV_PANEL, BGR_PANEL */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETPANEL, 0x0B);
-	/* 2 params in ST7703 docs */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETCYC, 0x80);
-	/* weird values, e.g. a 720 panel has BIT(1) 3rd param */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETDISP, 0xF0, 0x12, 0x30);
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETEQ, /* 14 */
 			      0x07, 0x07, 0x0B, 0x0B, 0x03, 0x0B, 0x00, 0x00,
 			      0x00, 0x00, 0xFF, 0x00, 0xC0, 0x10);
-	dsi_generic_write_seq(ctx, ST7703_CMD_SETPOWER, /* 12 */
-			      0x54, 0x00, 0x1E, 0x1E, 0x77, 0xF1, 0xFF, 0xFF,
-			      0xCC, 0xCC, 0x77, 0x77);
-	/* setbgp is different from our first data set*/
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETBGP, 0x08, 0x08);
 
 	mdelay(100);
-	/* setvcom is different from our first data set*/
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETVCOM, 0x3F, 0x3F);
-	/* undocumented */
 	dsi_generic_write_seq(ctx, 0xBF, 0x02, 0x11, 0x00);
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETGIP1, /* 63 */
 			      0x82, 0x10, 0x06, 0x05, 0x9E, 0x0A, 0xA5, 0x12,
@@ -139,7 +121,6 @@ static int jh057n_init_sequence(struct jh057n *ctx)
 			      0x64, 0x20, 0x88, 0x88, 0x88, 0x88, 0x88, 0x88,
 			      0x02, 0x88, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-	/* 39 parameters accordin to ST7703 docs */
 	dsi_generic_write_seq(ctx, ST7703_CMD_SETGIP2, /* 61 */
 			      0x02, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			      0x00, 0x00, 0x00, 0x00, 0x02, 0x46, 0x02, 0x88,
@@ -309,6 +290,47 @@ static const struct drm_panel_funcs jh057n_drm_funcs = {
 	.get_modes = jh057n_get_modes,
 };
 
+static int allpixelson_set(void *data, u64 val)
+{
+	struct jh057n *ctx = data;
+
+	DRM_DEV_DEBUG_DRIVER(ctx->dev, "Setting all pixels on");
+
+	dsi_generic_write_seq(ctx, ST7703_DCS_CMD_ALLPON);
+	/* reset the panel after val seconds */
+	msleep(val*1000);
+	jh057n_unprepare(&ctx->panel);
+	msleep(10);
+	jh057n_prepare(&ctx->panel);
+	jh057n_enable(&ctx->panel);
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(allpixelson_fops, NULL,
+			allpixelson_set, "%llu\n");
+
+static int jh057n_debugfs_init (struct jh057n *ctx)
+{
+	struct dentry *f;
+
+	ctx->debugfs = debugfs_create_dir(DRV_NAME, NULL);
+	if (!ctx->debugfs)
+		return -ENOMEM;
+
+	f = debugfs_create_file("allpixelson", S_IRUSR | S_IWUSR,
+				ctx->debugfs, ctx, &allpixelson_fops);
+	if (!f)
+		return -ENOMEM;
+
+	return 0;
+}
+
+static void jh057n_debugfs_remove(struct jh057n *ctx)
+{
+	debugfs_remove_recursive(ctx->debugfs);
+	ctx->debugfs = NULL;
+}
+
 static int jh057n_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
@@ -368,6 +390,7 @@ static int jh057n_probe(struct mipi_dsi_device *dsi)
 		 default_mode.vrefresh,
 		 mipi_dsi_pixel_format_to_bpp(dsi->format), dsi->lanes);
 
+	jh057n_debugfs_init(ctx);
 	return 0;
 }
 
@@ -380,6 +403,8 @@ static int jh057n_remove(struct mipi_dsi_device *dsi)
 
 	if (ctx->backlight)
 		put_device(&ctx->backlight->dev);
+
+	jh057n_debugfs_remove(ctx);
 
 	return 0;
 }
