@@ -1101,9 +1101,9 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai2>;
 	#sound-dai-cells = <0>;
-	assigned-clocks = <&clk IMX8MQ_CLK_SAI2_SRC>,
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI2_ROOT>,
 			<&clk IMX8MQ_CLK_SAI2_DIV>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-parents = <&clk IMX8MQ_CLK_SAI2_DIV>;
 	assigned-clock-rates = <0>, <24576000>;
 
 	status = "okay";
@@ -1112,9 +1112,9 @@
 &sai5 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai5>;
-	assigned-clocks = <&clk IMX8MQ_CLK_SAI5_SRC>,
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI5_ROOT>,
 			<&clk IMX8MQ_CLK_SAI5_DIV>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-parents = <&clk IMX8MQ_CLK_SAI5_DIV>;
 	assigned-clock-rates = <0>, <24576000>;
 
 	status = "okay";
@@ -1124,9 +1124,9 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_sai6>;
 
-	assigned-clocks = <&clk IMX8MQ_CLK_SAI6_SRC>,
+	assigned-clocks = <&clk IMX8MQ_CLK_SAI6_ROOT>,
 			<&clk IMX8MQ_CLK_SAI6_DIV>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
+	assigned-clock-parents = <&clk IMX8MQ_CLK_SAI6_DIV>;
 	assigned-clock-rates = <0>, <24576000>;
 
 	status = "okay";
