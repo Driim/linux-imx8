@@ -82,20 +82,6 @@
 		#reset-cells = <0>;
 	};
 
-	sound_osc: oscillator {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency  = <12000000>;
-		clock-output-names = "sound_osc";
-	};
-
-	mclk: mclk {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <26000000>;
-		clock-output-names = "mclk";
-	};
-
         sound {
                 compatible = "simple-audio-card";
 		simple-audio-card,name = "sgtl5000";
