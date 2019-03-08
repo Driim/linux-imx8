@@ -970,7 +970,6 @@
 	sgtl5000: sgtl5000@a {
 		compatible = "fsl,sgtl5000";
 		clocks = <&clk IMX8MQ_CLK_SAI2_ROOT>;
-		clock-names = "mclk";
 		#sound-dai-cells = <0>;
 		reg = <0x0a>;
 		VDDD-supply = <&buck7_reg>;
