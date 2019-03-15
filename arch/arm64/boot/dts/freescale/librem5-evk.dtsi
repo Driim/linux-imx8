@@ -970,6 +970,14 @@
 		interrupts = <19 IRQ_TYPE_LEVEL_LOW>;
 		power-supply = <&reg_pwr_en>;
 	};
+
+	lsm9d_magn: magnetometer@1e {
+		compatible = "st,lsm9ds1-magn";
+		reg = <0x1e>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <19 IRQ_TYPE_LEVEL_LOW>;
+		power-supply = <&reg_pwr_en>;
+	};
 };
 
 &uart1 { /* console */
