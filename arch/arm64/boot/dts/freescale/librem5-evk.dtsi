@@ -978,6 +978,12 @@
 		interrupts = <19 IRQ_TYPE_LEVEL_LOW>;
 		power-supply = <&reg_pwr_en>;
 	};
+
+	prox: prox@60 {
+		compatible = "vishay,vcnl4040";
+		reg = <0x60>;
+		power-supply = <&reg_pwr_en>;
+	};
 };
 
 &uart1 { /* console */
