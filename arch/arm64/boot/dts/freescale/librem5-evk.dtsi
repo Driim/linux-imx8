@@ -109,31 +109,6 @@
                 };
         };
 
-#if TODO
-	sound-hdmi {
-		compatible = "fsl,imx-audio-cdnhdmi";
-		model = "imx-audio-hdmi";
-		audio-cpu = <&sai4>;
-		protocol = <1>;
-	};
-
-	sound-spdif {
-		compatible = "fsl,imx-audio-spdif";
-		model = "imx-spdif";
-		spdif-controller = <&spdif1>;
-		spdif-out;
-		spdif-in;
-		status = "disabled";
-	};
-
-	sound-hdmi-arc {
-		compatible = "fsl,imx-audio-spdif";
-		model = "imx-hdmi-arc";
-		spdif-controller = <&spdif2>;
-		spdif-in;
-	};
-#endif
-
 	leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
@@ -917,11 +892,6 @@
 		compatible = "ovti,ov5640";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_csi1>;
-		// TODO : add these back in at some point
-/*
-                reset = <&gpio1 6 GPIO_ACTIVE_LOW>;
-                powerdown = <&gpio1 7 GPIO_ACTIVE_HIGH>;
-*/
 		reg = <0x3c>;
 		status = "okay";
 		clocks = <&clk IMX8MQ_CLK_CLKO1_DIV>;
@@ -1064,7 +1034,6 @@
 
 &usb3_0 {
 	status = "okay";
-	// power-supply = <&reg_pwr_en>;
 	power-domains = <&usb_otg1_pd>;
 };
 
@@ -1086,7 +1055,6 @@
 
 &usb3_1 {
 	status = "okay";
-	// power-supply = <&reg_pwr_en>;
 	power-domains = <&usb_otg2_pd>;
 };
 
@@ -1130,40 +1098,6 @@
 	status = "okay";
 };
 
-#ifdef TODO
-&spdif1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_spdif1>;
-	assigned-clocks = <&clk IMX8MQ_CLK_SPDIF1_SRC>,
-			<&clk IMX8MQ_CLK_SPDIF1_DIV>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <0>, <24576000>;
-	status = "disabled";
-};
-
-&spdif2 {
-	assigned-clocks = <&clk IMX8MQ_CLK_SPDIF2_SRC>,
-			<&clk IMX8MQ_CLK_SPDIF2_DIV>;
-	assigned-clock-parents = <&clk IMX8MQ_AUDIO_PLL1_OUT>;
-	assigned-clock-rates = <0>, <24576000>;
-	status = "okay";
-};
-
-&gpu_pd {
-// TBD: define correct power supply
-//	power-supply = <&sw1a_reg>;
-};
-
-&vpu_pd {
-// TBD: define correct power supply
-//	power-supply = <&sw1c_reg>;
-};
-
-&vpu {
-	status = "okay";
-};
-
-#endif
 
 &gpu_3d {
 	status = "okay";
