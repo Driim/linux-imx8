@@ -20,3 +20,4 @@ dtb-$(CONFIG_SOC_IMX8MQ) += librem5-evk-hdmi.dtb
 dtb-$(CONFIG_SOC_IMX8MQ) += librem5-evk-otg.dtb
 dtb-$(CONFIG_SOC_IMX8MQ) += librem5-evk-usbhost.dtb
 dtb-$(CONFIG_SOC_IMX8MQ) += librem5-evk-lcdusbhost.dtb
+dtb-$(CONFIG_SOC_IMX8MQ) += pico-imx8m-ili9881c.dtb
